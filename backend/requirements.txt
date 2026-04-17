@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+crawl4ai
+httpx
+pydantic
+python-multipart
