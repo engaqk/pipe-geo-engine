@@ -62,7 +62,10 @@ export default function Home() {
     try {
       const res = await fetch(`${BACKEND_URL}/audit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'bypass-tunnel-reminder': 'true'
+        },
         body: JSON.stringify({ url })
       });
       if (!res.ok) throw new Error('Audit failed');
@@ -82,7 +85,10 @@ export default function Home() {
     try {
       const res = await fetch(`${BACKEND_URL}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'bypass-tunnel-reminder': 'true'
+        },
         body: JSON.stringify({ url })
       });
       if (!res.ok) throw new Error('Generation failed');
