@@ -3,10 +3,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithPopup, 
+  signInWithRedirect, 
   signOut, 
   User 
 } from 'firebase/auth';
+
 import { auth, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 
 interface AuthContextType {
@@ -47,10 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithRedirect(auth, googleProvider);
     } catch (error) {
       console.error("Login failed", error);
     }
+
   };
 
   const logout = async () => {
