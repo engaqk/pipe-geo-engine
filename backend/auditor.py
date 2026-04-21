@@ -42,7 +42,7 @@ async def analyze_with_llm(markdown_content: str, prompt_type: str):
         """
     }
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         response = await client.post(OLLAMA_URL, json={
             "model": "llama3",
             "prompt": prompts[prompt_type],
