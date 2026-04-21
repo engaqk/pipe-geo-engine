@@ -1,4 +1,5 @@
 'use client';
+// v1.0.1 - Fixed Download/Copy and Score Crash
 
 import { useState } from 'react';
 import { 
