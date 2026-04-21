@@ -1,7 +1,7 @@
 import asyncio
-from crawl4ai import WebCrawler
+from crawl4ai import AsyncWebCrawler
 
 async def get_markdown_from_url(url: str) -> str:
-    async with WebCrawler() as crawler:
+    async with AsyncWebCrawler() as crawler:
         result = await crawler.arun(url=url)
         return result.markdown

@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from .crawler import get_markdown_from_url
-from .auditor import analyze_with_llm
+from crawler import get_markdown_from_url
+from auditor import analyze_with_llm
 
 app = FastAPI(title="GEO Engine API")
 
