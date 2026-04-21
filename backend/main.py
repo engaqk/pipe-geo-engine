@@ -23,7 +23,8 @@ async def root():
 @app.post("/audit")
 async def perform_audit(request: AuditRequest):
     try:
-        markdown = await get_markdown_from_url(request.url)
+        url_to_crawl = request.url if request.url.startswith(('http://', 'https://')) else f"https://{request.url}"
+        markdown = await get_markdown_from_url(url_to_crawl)
         if not markdown:
             raise HTTPException(status_code=400, detail="Failed to scrape the URL")
         
@@ -35,7 +36,8 @@ async def perform_audit(request: AuditRequest):
 @app.post("/generate")
 async def generate_assets(request: AuditRequest):
     try:
-        markdown = await get_markdown_from_url(request.url)
+        url_to_crawl = request.url if request.url.startswith(('http://', 'https://')) else f"https://{request.url}"
+        markdown = await get_markdown_from_url(url_to_crawl)
         if not markdown:
             raise HTTPException(status_code=400, detail="Failed to scrape the URL")
         
