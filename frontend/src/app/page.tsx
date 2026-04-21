@@ -271,36 +271,36 @@ export default function Home() {
             <ScoreCard 
               name="ChatGPT" 
               icon={<MessageSquare className="w-5 h-5" />}
-              score={report.chatgpt.score}
-              analysis={report.chatgpt.analysis}
+              score={report?.chatgpt?.score || 0}
+              analysis={report?.chatgpt?.analysis || "Analysis pending or data missing."}
               color="text-emerald-400"
             />
             <ScoreCard 
               name="Grok" 
               icon={<Cpu className="w-5 h-5" />}
-              score={report.grok.score}
-              analysis={report.grok.analysis}
+              score={report?.grok?.score || 0}
+              analysis={report?.grok?.analysis || "Analysis pending or data missing."}
               color="text-zinc-50"
             />
             <ScoreCard 
               name="Gemini" 
               icon={<ShieldCheck className="w-5 h-5" />}
-              score={report.gemini.score}
-              analysis={report.gemini.analysis}
+              score={report?.gemini?.score || 0}
+              analysis={report?.gemini?.analysis || "Analysis pending or data missing."}
               color="text-blue-400"
             />
             <ScoreCard 
               name="Claude" 
               icon={<Layers className="w-5 h-5" />}
-              score={report.claude.score}
-              analysis={report.claude.analysis}
+              score={report?.claude?.score || 0}
+              analysis={report?.claude?.analysis || "Analysis pending or data missing."}
               color="text-orange-400"
             />
             <ScoreCard 
               name="Perplexity" 
               icon={<Globe className="w-5 h-5" />}
-              score={report.perplexity.score}
-              analysis={report.perplexity.analysis}
+              score={report?.perplexity?.score || 0}
+              analysis={report?.perplexity?.analysis || "Analysis pending or data missing."}
               color="text-cyan-400"
             />
           </div>
