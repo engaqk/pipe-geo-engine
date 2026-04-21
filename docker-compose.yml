@@ -26,6 +26,15 @@ services:
       - OLLAMA_URL=http://ollama:11434/api/generate
     restart: always
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: geo-tunnel
+    command: tunnel --url http://backend:8000
+    depends_on:
+      - backend
+    restart: always
+
+
   frontend:
     build: ./frontend
     container_name: geo-frontend
