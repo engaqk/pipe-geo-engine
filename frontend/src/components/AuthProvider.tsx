@@ -7,11 +7,12 @@ import {
   signOut, 
   User 
 } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { auth, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isConfigured: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -19,6 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  isConfigured: false,
   login: async () => {},
   logout: async () => {},
 });
@@ -61,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, isConfigured: isFirebaseConfigured, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

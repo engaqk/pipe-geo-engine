@@ -21,4 +21,9 @@ if (typeof window !== "undefined" && firebaseConfig.apiKey) {
   googleProvider = new GoogleAuthProvider();
 }
 
-export { auth, googleProvider };
+const isFirebaseConfigured = !!firebaseConfig.apiKey;
+
+export { auth, googleProvider, isFirebaseConfigured };
+
+
+

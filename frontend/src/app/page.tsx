@@ -43,7 +43,7 @@ import { useAuth } from '@/components/AuthProvider';
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
-  const { user, loading: authLoading, login, logout } = useAuth();
+  const { user, loading: authLoading, isConfigured, login, logout } = useAuth();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<AuditData | null>(null);
@@ -51,6 +51,7 @@ export default function Home() {
   const [error, setError] = useState('');
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const isBackendRemote = BACKEND_URL.includes('trycloudflare.com') || BACKEND_URL.includes('vercel.app') || !BACKEND_URL.includes('localhost');
 
   const handleAudit = async () => {
     if (!url || !user) return;
@@ -116,11 +117,35 @@ export default function Home() {
           </p>
           <button 
             onClick={login}
-            className="w-full h-14 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-colors flex items-center justify-center gap-3"
+            disabled={!isConfigured}
+            className={cn(
+              "w-full h-14 font-bold rounded-2xl transition-all flex items-center justify-center gap-3",
+              isConfigured 
+                ? "bg-white text-black hover:bg-zinc-200" 
+                : "bg-red-500/20 text-red-500 border border-red-500/50 cursor-not-allowed"
+            )}
           >
-            <Globe className="w-5 h-5" />
-            Sign in with Google
+            {isConfigured ? (
+              <>
+                <Globe className="w-5 h-5" />
+                Sign in with Google
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-5 h-5" />
+                Auth Not Configured
+              </>
+            )}
           </button>
+          {!isConfigured && (
+            <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-left">
+              <h3 className="text-red-500 font-bold text-sm mb-1">Configuration Required</h3>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                Firebase keys are missing in environment variables. 
+                Check your Vercel Dashboard and add <code>NEXT_PUBLIC_FIREBASE_API_KEY</code> and other required keys.
+              </p>
+            </div>
+          )}
         </div>
       </main>
     );
@@ -130,9 +155,16 @@ export default function Home() {
     <main className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30">
       {/* Header with Logout */}
       <nav className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-8 z-20">
-        <div className="flex items-center gap-2 font-bold text-xl tracking-tighter">
-          <Zap className="w-6 h-6 text-purple-500 fill-purple-500" />
-          GEO ENGINE
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 font-bold text-xl tracking-tighter">
+            <Zap className="w-6 h-6 text-purple-500 fill-purple-500" />
+            GEO ENGINE
+          </div>
+          {!isBackendRemote && (
+            <span className="text-[10px] text-amber-500 font-medium uppercase tracking-widest mt-0.5">
+              ⚠️ Local Backend Mode
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-zinc-400 hidden md:block">
