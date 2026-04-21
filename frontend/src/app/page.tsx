@@ -53,6 +53,27 @@ export default function Home() {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   const isBackendRemote = BACKEND_URL.includes('trycloudflare.com') || BACKEND_URL.includes('vercel.app') || !BACKEND_URL.includes('localhost');
 
+  const pollTaskStatus = async (taskId: string) => {
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      const res = await fetch(`${BACKEND_URL}/status/${taskId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'bypass-tunnel-reminder': 'true'
+        }
+      });
+      if (!res.ok) throw new Error('Failed to check task status');
+      
+      const data = await res.json();
+      if (data.status === 'completed') {
+        return data.result;
+      } else if (data.status === 'error') {
+        throw new Error(data.detail || 'Task failed');
+      }
+      // if processing, continue loop
+    }
+  };
+
   const handleAudit = async () => {
     if (!url || !user) return;
     setLoading(true);
@@ -68,11 +89,14 @@ export default function Home() {
         },
         body: JSON.stringify({ url })
       });
-      if (!res.ok) throw new Error('Audit failed');
-      const data = await res.json();
-      setReport(data);
+      if (!res.ok) throw new Error('Task initiation failed');
+      
+      const { task_id } = await res.json();
+      const reportData = await pollTaskStatus(task_id);
+      
+      setReport(reportData);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Audit failed.');
     } finally {
       setLoading(false);
     }
@@ -91,11 +115,14 @@ export default function Home() {
         },
         body: JSON.stringify({ url })
       });
-      if (!res.ok) throw new Error('Generation failed');
-      const data = await res.json();
-      setAssets(data);
+      if (!res.ok) throw new Error('Task initiation failed');
+      
+      const { task_id } = await res.json();
+      const assetsData = await pollTaskStatus(task_id);
+      
+      setAssets(assetsData);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Generation failed.');
     } finally {
       setLoading(false);
     }
