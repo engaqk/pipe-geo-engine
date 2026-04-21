@@ -225,7 +225,7 @@ export default function Home() {
           </h1>
           <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             Audit your brand across the Big 5 Generative Engines. 
-            Optimize for citations, entity clarity, and real-time sentiment.
+            Discover your current visibility score and automatically generate assets to improve your AI ranking.
           </p>
 
           <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
