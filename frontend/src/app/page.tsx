@@ -348,6 +348,38 @@ function ScoreCard({ name, icon, score, analysis, color }: any) {
 }
 
 function AssetBox({ title, icon, content }: any) {
+  const displayContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
+
+  const handleCopy = () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(displayContent);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = displayContent;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
+      alert('Copied to clipboard!');
+    } catch (e) {
+      alert('Failed to copy. Please select the text manually.');
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([displayContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden flex flex-col">
       <div className="px-6 py-4 flex items-center justify-between bg-white/[0.02] border-b border-white/10">
@@ -355,20 +387,25 @@ function AssetBox({ title, icon, content }: any) {
           {icon}
           <span className="font-semibold">{title}</span>
         </div>
-        <button 
-          onClick={() => {
-            navigator.clipboard.writeText(content);
-            alert('Copied to clipboard!');
-          }}
-          className="text-xs font-medium text-zinc-500 hover:text-white transition-colors flex items-center gap-1.5"
-        >
-          <Download className="w-3.5 h-3.5" />
-          Copy
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handleCopy}
+            className="text-xs font-medium text-zinc-500 hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            Copy
+          </button>
+          <button 
+            onClick={handleDownload}
+            className="text-xs font-medium text-zinc-500 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Download
+          </button>
+        </div>
       </div>
       <div className="p-6">
         <pre className="text-xs font-mono text-zinc-500 overflow-x-auto whitespace-pre-wrap max-h-[300px]">
-          {content}
+          {displayContent}
         </pre>
       </div>
     </div>
