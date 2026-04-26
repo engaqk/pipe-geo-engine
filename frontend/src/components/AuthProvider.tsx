@@ -3,7 +3,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithRedirect, 
+  signInWithPopup, 
+  getRedirectResult,
   signOut, 
   User 
 } from 'firebase/auth';
@@ -35,7 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
+
+    // Explicitly check for redirect result if one exists
+    getRedirectResult(auth).catch((error) => {
+      console.error("Redirect auth error:", error);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? "User found" : "No user");
       setUser(user);
       setLoading(false);
     });
@@ -47,12 +55,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       alert("Firebase is not initialized. Check your environment variables.");
       return;
     }
+    setLoading(true);
     try {
-      await signInWithRedirect(auth, googleProvider);
-    } catch (error) {
+      // Popup is generally more reliable for web apps than redirect
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
       console.error("Login failed", error);
+      if (error.code === 'auth/popup-blocked') {
+        alert("Sign-in popup was blocked. Please allow popups for this site.");
+      }
+    } finally {
+      setLoading(false);
     }
-
   };
 
   const logout = async () => {
