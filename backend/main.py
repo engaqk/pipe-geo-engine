@@ -30,11 +30,7 @@ app = FastAPI(
 )
 
 # CORS Configuration
-ALLOWED_ORIGINS = [
-    "*",
-    "http://localhost:3000",
-    "https://pipe-geo-engine.vercel.app"
-]
+ALLOWED_ORIGINS = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,6 +40,16 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# Manual OPTIONS handler for Cloudflare Tunnel stability
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    from fastapi.responses import Response
+    response = Response()
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 class AuditRequest(BaseModel):
     url: str
