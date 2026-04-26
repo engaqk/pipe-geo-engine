@@ -43,7 +43,7 @@ services:
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: geo-tunnel
-    command: tunnel --url http://backend:8000
+    command: tunnel --no-autoupdate run --token eyJhIjoiMWViZjdhOGUwNWQ4Y2ExNmNjMjc5NjE5NzhlYzI1YjMiLCJzIjoicGo1aXZ2V2ZkQkJsR0VhVWQ2QmtFcUdDalR1ZXpUQmhtSmJvbGpRN2t4MD0iLCJ0IjoiMTQyM2FiMmUtNTNkMS00MjMwLThiNzctMDIzMjg5NjlhNjU3In0=
     depends_on:
       backend:
         condition: service_healthy
