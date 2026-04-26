@@ -54,15 +54,11 @@ export default function Home() {
   const [assets, setAssets] = useState<AssetData | null>(null);
   const [error, setError] = useState('');
 
-  let rawBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-  // Ensure protocol exists
-  if (rawBackendUrl && !rawBackendUrl.startsWith('http')) {
-    rawBackendUrl = `https://${rawBackendUrl}`;
-  }
-  // Sanitize trailing slash
-  const BACKEND_URL = rawBackendUrl.replace(/\/$/, '');
+  // Production Ready Expert Note: Using relative proxy path /api_proxy to bypass CORS/ISP DNS blocks entirely
+  const isProd = typeof window !== 'undefined' && (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+  const BACKEND_URL = isProd ? '/api_proxy' : (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
   
-  const isBackendRemote = BACKEND_URL.includes('trycloudflare.com') || BACKEND_URL.includes('vercel.app') || !BACKEND_URL.includes('localhost');
+  const isBackendRemote = isProd || (!BACKEND_URL.includes('localhost'));
 
   const pollTaskStatus = async (taskId: string, type: 'audit' | 'generate') => {
     const startTime = Date.now();

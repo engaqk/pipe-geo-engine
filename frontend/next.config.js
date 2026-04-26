@@ -21,6 +21,14 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api_proxy/:path*',
+        destination: 'https://api.talibkhanjipmp.in/:path*',
+      },
+    ];
+  },
 };
 
 module.exports = withPWA(nextConfig);
