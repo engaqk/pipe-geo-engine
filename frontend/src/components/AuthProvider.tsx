@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithPopup, 
+  signInWithRedirect, 
   getRedirectResult,
   signOut, 
   User 
@@ -37,9 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Explicitly check for redirect result if one exists
-    getRedirectResult(auth).catch((error) => {
-      console.error("Redirect auth error:", error);
+    // Handle the redirect result when the user returns
+    getRedirectResult(auth).then(() => {
+      // Result is handled by onAuthStateChanged
+    }).catch((error) => {
+      console.error("Redirect recovery error:", error);
+      setLoading(false);
     });
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -57,14 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(true);
     try {
-      // Popup is generally more reliable for web apps than redirect
-      await signInWithPopup(auth, googleProvider);
+      await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
       console.error("Login failed", error);
-      if (error.code === 'auth/popup-blocked') {
-        alert("Sign-in popup was blocked. Please allow popups for this site.");
-      }
-    } finally {
       setLoading(false);
     }
   };

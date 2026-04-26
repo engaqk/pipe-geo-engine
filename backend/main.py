@@ -64,7 +64,7 @@ async def cleanup_tasks():
         if expired_ids:
             logger.info(f"Cleaned up {len(expired_ids)} expired tasks from memory.")
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 @app.get("/")
 async def health_check():
     return {
