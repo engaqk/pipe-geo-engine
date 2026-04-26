@@ -436,6 +436,45 @@ export default function Home() {
     </main>
   );
 }
+
+function ScoreCard({ name, icon, score, analysis, color, delay }: any) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="bg-white/[0.03] border border-white/5 rounded-[32px] p-8 hover:bg-white/[0.05] hover:border-white/10 transition-all group relative overflow-hidden"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:border-purple-500/30 transition-all duration-500">
+            {icon}
+          </div>
+          <span className="font-bold text-xl">{name}</span>
+        </div>
+        <div className={cn("text-3xl font-black tabular-nums tracking-tighter", color)}>
+          {score}%
+        </div>
+      </div>
+
+      <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-6">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${score}%` }}
+          transition={{ duration: 1.5, ease: "easeOut", delay: delay + 0.5 }}
+          className={cn("h-full", color.replace('text', 'bg'))}
+        />
+      </div>
+
+      <p className="text-zinc-400 text-sm leading-relaxed antialiased line-clamp-4 group-hover:line-clamp-none transition-all">
+        {analysis}
+      </p>
+    </motion.div>
+  );
+}
+
 function AssetBox({ title, icon, content }: any) {
   const displayContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
 
