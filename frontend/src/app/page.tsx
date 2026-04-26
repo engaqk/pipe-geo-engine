@@ -41,12 +41,15 @@ interface AssetData {
 
 import { useAuth } from '@/components/AuthProvider';
 
+import { motion, AnimatePresence } from 'framer-motion';
+
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
   const { user, loading: authLoading, isConfigured, login, logout } = useAuth();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
   const [report, setReport] = useState<AuditData | null>(null);
   const [assets, setAssets] = useState<AssetData | null>(null);
   const [error, setError] = useState('');
@@ -54,34 +57,63 @@ export default function Home() {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
   const isBackendRemote = BACKEND_URL.includes('trycloudflare.com') || BACKEND_URL.includes('vercel.app') || !BACKEND_URL.includes('localhost');
 
-  const pollTaskStatus = async (taskId: string) => {
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      const res = await fetch(`${BACKEND_URL}/status/${taskId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'bypass-tunnel-reminder': 'true'
+  const pollTaskStatus = async (taskId: string, type: 'audit' | 'generate') => {
+    const startTime = Date.now();
+    const timeout = 300000; // 5 minutes
+    
+    while (Date.now() - startTime < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      try {
+        const res = await fetch(`${BACKEND_URL}/status/${taskId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'bypass-tunnel-reminder': 'true',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (res.status === 404) {
+          throw new Error('Task lost or expired on server.');
         }
-      });
-      if (!res.ok) throw new Error('Failed to check task status');
-      
-      const data = await res.json();
-      if (data.status === 'completed') {
-        return data.result;
-      } else if (data.status === 'error') {
-        throw new Error(data.detail || 'Task failed');
+
+        if (!res.ok) {
+          console.error(`Polling error: ${res.status} ${res.statusText}`);
+          // If it's a Cloudflare error (502, 504), we might want to retry a few times
+          if (res.status >= 500) continue; 
+          throw new Error(`Server returned error: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        if (data.status === 'completed') {
+          setStatus('Success!');
+          return data.result;
+        } else if (data.status === 'error') {
+          throw new Error(data.detail || 'Task failed');
+        } else {
+          // Update status based on elapsed time or backend info if available
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          setStatus(`${type === 'audit' ? 'Analyzing' : 'Generating'}... (${elapsed}s)`);
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
       }
-      // if processing, continue loop
     }
+    throw new Error('Task timed out after 5 minutes.');
   };
 
   const handleAudit = async () => {
     if (!url || !user) return;
+    if (!url.startsWith('http')) {
+      setError('Please enter a valid URL starting with http:// or https://');
+      return;
+    }
     setLoading(true);
     setError('');
+    setStatus('Initializing Audit...');
     setReport(null);
     setAssets(null);
     try {
+      setStatus('Scraping Website...');
       const res = await fetch(`${BACKEND_URL}/audit`, {
         method: 'POST',
         headers: { 
@@ -90,16 +122,18 @@ export default function Home() {
         },
         body: JSON.stringify({ url })
       });
-      if (!res.ok) throw new Error('Task initiation failed');
+      if (!res.ok) throw new Error('Could not connect to AI Engine.');
       
       const { task_id } = await res.json();
-      const reportData = await pollTaskStatus(task_id);
+      setStatus('Analyzing with LLM...');
+      const reportData = await pollTaskStatus(task_id, 'audit');
       
       setReport(reportData);
     } catch (err: any) {
       setError(err.message || 'Audit failed.');
     } finally {
       setLoading(false);
+      setStatus('');
     }
   };
 
@@ -107,7 +141,9 @@ export default function Home() {
     if (!url || !user) return;
     setLoading(true);
     setError('');
+    setStatus('Initializing Asset Generation...');
     try {
+      setStatus('Crawling for assets...');
       const res = await fetch(`${BACKEND_URL}/generate`, {
         method: 'POST',
         headers: { 
@@ -116,23 +152,29 @@ export default function Home() {
         },
         body: JSON.stringify({ url })
       });
-      if (!res.ok) throw new Error('Task initiation failed');
+      if (!res.ok) throw new Error('Could not connect to AI Engine.');
       
       const { task_id } = await res.json();
-      const assetsData = await pollTaskStatus(task_id);
+      setStatus('Generating Optimization Files...');
+      const assetsData = await pollTaskStatus(task_id, 'generate');
       
       setAssets(assetsData);
     } catch (err: any) {
       setError(err.message || 'Generation failed.');
     } finally {
       setLoading(false);
+      setStatus('');
     }
   };
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full" 
+        />
       </div>
     );
   }
@@ -141,8 +183,12 @@ export default function Home() {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-gradient-to-b from-purple-600/20 to-transparent opacity-50 blur-3xl pointer-events-none" />
-        <div className="relative z-10 max-w-md">
-          <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center mx-auto mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 max-w-md"
+        >
+          <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-purple-500/10">
             <ShieldCheck className="w-10 h-10 text-purple-400" />
           </div>
           <h1 className="text-4xl font-bold mb-4 tracking-tight">Premium Access Only</h1>
@@ -153,7 +199,7 @@ export default function Home() {
             onClick={login}
             disabled={!isConfigured}
             className={cn(
-              "w-full h-14 font-bold rounded-2xl transition-all flex items-center justify-center gap-3",
+              "w-full h-14 font-bold rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-[0.98]",
               isConfigured 
                 ? "bg-white text-black hover:bg-zinc-200" 
                 : "bg-red-500/20 text-red-500 border border-red-500/50 cursor-not-allowed"
@@ -180,174 +226,216 @@ export default function Home() {
               </p>
             </div>
           )}
-        </div>
+        </motion.div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30">
-      {/* Header with Logout */}
-      <nav className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-8 z-20">
+    <main className="min-h-screen bg-[#020202] text-white selection:bg-purple-500/30 font-sans">
+      {/* Header */}
+      <nav className="fixed top-0 left-0 right-0 h-20 flex items-center justify-between px-8 z-50 bg-[#020202]/80 backdrop-blur-md border-b border-white/5">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 font-bold text-xl tracking-tighter">
             <Zap className="w-6 h-6 text-purple-500 fill-purple-500" />
             GEO ENGINE
           </div>
           {!isBackendRemote && (
-            <span className="text-[10px] text-amber-500 font-medium uppercase tracking-widest mt-0.5">
-              ⚠️ Local Backend Mode
+            <span className="text-[9px] text-amber-500 font-bold uppercase tracking-widest mt-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 w-fit">
+              Local Dev Mode
             </span>
           )}
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-zinc-400 hidden md:block">
+          <div className="text-sm text-zinc-400 hidden lg:flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {user.email}
           </div>
           <button 
             onClick={logout}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-xs font-semibold"
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-xs font-semibold"
           >
             Logout
           </button>
         </div>
       </nav>
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden pt-20 pb-16 px-6">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[400px] bg-gradient-to-b from-purple-600/10 via-transparent to-transparent opacity-50 blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden pt-40 pb-20 px-6">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[600px] bg-gradient-radial from-purple-600/10 via-transparent to-transparent opacity-60 blur-3xl pointer-events-none" />
         
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-purple-400 mb-6 tracking-wider uppercase">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-purple-400 mb-8 tracking-widest uppercase"
+          >
             <Zap className="w-3.5 h-3.5" />
-            100% Open Source GEO Engine
-          </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
-            AI Visibility & Optimization
-          </h1>
-          <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Audit your brand across the Big 5 Generative Engines. 
-            Discover your current visibility score and automatically generate assets to improve your AI ranking.
-          </p>
+            Generative Search Optimization Protocol
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-6xl md:text-8xl font-black tracking-tight mb-8 bg-gradient-to-b from-white via-white to-white/40 bg-clip-text text-transparent"
+          >
+            Master AI <br className="hidden md:block" /> Visibility.
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-12 leading-relaxed"
+          >
+            Audit your brand ranking across top LLM engines and generate production-ready 
+            optimization assets in seconds. 
+          </motion.p>
 
-          <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col md:flex-row gap-4 max-w-3xl mx-auto p-2 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm"
+          >
             <div className="flex-1 relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Enter website URL (e.g., https://example.com)"
-                className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/40 transition-all font-medium"
+                className="w-full h-14 bg-transparent border-none rounded-2xl pl-12 pr-4 outline-none focus:ring-0 transition-all font-medium text-white placeholder:text-zinc-600"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAudit()}
               />
             </div>
             <button 
               onClick={handleAudit}
               disabled={loading}
-              className="h-14 px-8 bg-white text-black font-semibold rounded-2xl hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="h-14 px-8 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 shadow-xl shadow-white/5"
             >
-              {loading ? 'Analyzing...' : 'Run Audit'}
+              {loading && status.includes('Analyzing') ? (
+                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : <Globe className="w-4 h-4" />}
+              {loading && status.includes('Analyzing') ? 'Analyzing...' : 'Run Audit'}
             </button>
             <button 
               onClick={handleGenerate}
               disabled={loading || !url}
-              className="h-14 px-8 bg-white/5 border border-white/10 text-white font-semibold rounded-2xl hover:bg-white/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="h-14 px-8 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 shadow-xl shadow-purple-500/20"
             >
+              {loading && status.includes('Generating') ? (
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : <Zap className="w-4 h-4" />}
               Generate Assets
             </button>
-          </div>
+          </motion.div>
+
+          {status && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-6 text-purple-400 text-sm font-bold tracking-widest uppercase animate-pulse"
+            >
+              {status}
+            </motion.div>
+          )}
 
           {error && (
-            <div className="mt-6 flex items-center justify-center gap-2 text-red-400 text-sm font-medium">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-6 flex items-center justify-center gap-2 text-red-500 text-sm font-bold px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 w-fit mx-auto"
+            >
               <AlertCircle className="w-4 h-4" />
               {error}
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 pb-24 space-y-12">
-        {/* Scoring Grid */}
-        {report && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ScoreCard 
-              name="ChatGPT" 
-              icon={<MessageSquare className="w-5 h-5" />}
-              score={report?.chatgpt?.score || 0}
-              analysis={report?.chatgpt?.analysis || "Analysis pending or data missing."}
-              color="text-emerald-400"
-            />
-            <ScoreCard 
-              name="Grok" 
-              icon={<Cpu className="w-5 h-5" />}
-              score={report?.grok?.score || 0}
-              analysis={report?.grok?.analysis || "Analysis pending or data missing."}
-              color="text-zinc-50"
-            />
-            <ScoreCard 
-              name="Gemini" 
-              icon={<ShieldCheck className="w-5 h-5" />}
-              score={report?.gemini?.score || 0}
-              analysis={report?.gemini?.analysis || "Analysis pending or data missing."}
-              color="text-blue-400"
-            />
-            <ScoreCard 
-              name="Claude" 
-              icon={<Layers className="w-5 h-5" />}
-              score={report?.claude?.score || 0}
-              analysis={report?.claude?.analysis || "Analysis pending or data missing."}
-              color="text-orange-400"
-            />
-            <ScoreCard 
-              name="Perplexity" 
-              icon={<Globe className="w-5 h-5" />}
-              score={report?.perplexity?.score || 0}
-              analysis={report?.perplexity?.analysis || "Analysis pending or data missing."}
-              color="text-cyan-400"
-            />
-          </div>
-        )}
+      <div className="max-w-7xl mx-auto px-6 pb-32 space-y-20">
+        <AnimatePresence mode="wait">
+          {report && (
+            <motion.div 
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -40 }}
+              className="space-y-8"
+            >
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold tracking-tight">Visibility Assessment</h2>
+                <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <ScoreCard 
+                  name="ChatGPT" 
+                  icon={<MessageSquare className="w-5 h-5" />}
+                  score={report?.chatgpt?.score || 0}
+                  analysis={report?.chatgpt?.analysis || "Analysis pending..."}
+                  color="text-emerald-400"
+                  delay={0.1}
+                />
+                <ScoreCard 
+                  name="Grok" 
+                  icon={<Cpu className="w-5 h-5" />}
+                  score={report?.grok?.score || 0}
+                  analysis={report?.grok?.analysis || "Analysis pending..."}
+                  color="text-zinc-50"
+                  delay={0.2}
+                />
+                <ScoreCard 
+                  name="Gemini" 
+                  icon={<ShieldCheck className="w-5 h-5" />}
+                  score={report?.gemini?.score || 0}
+                  analysis={report?.gemini?.analysis || "Analysis pending..."}
+                  color="text-blue-400"
+                  delay={0.3}
+                />
+                <ScoreCard 
+                  name="Claude" 
+                  icon={<Layers className="w-5 h-5" />}
+                  score={report?.claude?.score || 0}
+                  analysis={report?.claude?.analysis || "Analysis pending..."}
+                  color="text-orange-400"
+                  delay={0.4}
+                />
+                <ScoreCard 
+                  name="Perplexity" 
+                  icon={<Globe className="w-5 h-5" />}
+                  score={report?.perplexity?.score || 0}
+                  analysis={report?.perplexity?.analysis || "Analysis pending..."}
+                  color="text-cyan-400"
+                  delay={0.5}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Asset Grid */}
-        {assets && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-12 border-t border-white/10">
-            <AssetBox title="geo.txt" icon={<FileText className="w-5 h-5" />} content={assets.geo_txt} />
-            <AssetBox title="JSON-LD Schema" icon={<Code className="w-5 h-5" />} content={assets.json_ld} />
-            <AssetBox title="Q&A Snippets" icon={<CheckCircle2 className="w-5 h-5" />} content={assets.qa_snippets} />
-            <AssetBox title="Comparison Table" icon={<Table className="w-5 h-5" />} content={assets.comparison_table} />
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {assets && (
+            <motion.div 
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold tracking-tight">Optimization Assets</h2>
+                <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <AssetBox title="geo.txt" icon={<FileText className="w-5 h-5 text-purple-400" />} content={assets.geo_txt} />
+                <AssetBox title="JSON-LD Schema" icon={<Code className="w-5 h-5 text-blue-400" />} content={assets.json_ld} />
+                <AssetBox title="Q&A Snippets" icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} content={assets.qa_snippets} />
+                <AssetBox title="Comparison Table" icon={<Table className="w-5 h-5 text-zinc-400" />} content={assets.comparison_table} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </main>
   );
 }
-
-function ScoreCard({ name, icon, score, analysis, color }: any) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 hover:border-white/20 transition-all group">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
-            {icon}
-          </div>
-          <span className="font-bold text-lg">{name}</span>
-        </div>
-        <div className={cn("text-2xl font-black", color)}>
-          {score}%
-        </div>
-      </div>
-      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-4">
-        <div 
-          className={cn("h-full transition-all duration-1000", color.replace('text', 'bg'))}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-      <p className="text-zinc-400 text-sm leading-relaxed antialiased">
-        {analysis}
-      </p>
-    </div>
-  );
-}
-
 function AssetBox({ title, icon, content }: any) {
   const displayContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
 
@@ -363,9 +451,8 @@ function AssetBox({ title, icon, content }: any) {
         document.execCommand("copy");
         textArea.remove();
       }
-      alert('Copied to clipboard!');
     } catch (e) {
-      alert('Failed to copy. Please select the text manually.');
+      console.error('Failed to copy');
     }
   };
 
@@ -382,33 +469,39 @@ function AssetBox({ title, icon, content }: any) {
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden flex flex-col">
-      <div className="px-6 py-4 flex items-center justify-between bg-white/[0.02] border-b border-white/10">
-        <div className="flex items-center gap-2">
-          {icon}
-          <span className="font-semibold">{title}</span>
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.98 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      className="bg-white/[0.03] border border-white/5 rounded-[32px] overflow-hidden flex flex-col group hover:border-white/10 transition-all"
+    >
+      <div className="px-8 py-6 flex items-center justify-between bg-white/[0.02] border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:border-purple-500/30 transition-colors">
+            {icon}
+          </div>
+          <span className="font-bold tracking-tight">{title}</span>
         </div>
         <div className="flex items-center gap-4">
           <button 
             onClick={handleCopy}
-            className="text-xs font-medium text-zinc-500 hover:text-white transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white text-zinc-400 hover:text-black transition-all"
           >
             Copy
           </button>
           <button 
             onClick={handleDownload}
-            className="text-xs font-medium text-zinc-500 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-500 hover:border-emerald-500 group/down transition-all"
           >
-            <Download className="w-3.5 h-3.5" />
-            Download
+            <Download className="w-4 h-4 text-zinc-400 group-hover/down:text-white" />
           </button>
         </div>
       </div>
-      <div className="p-6">
-        <pre className="text-xs font-mono text-zinc-500 overflow-x-auto whitespace-pre-wrap max-h-[300px]">
+      <div className="p-8 bg-[#030303]">
+        <pre className="text-xs font-mono text-zinc-500 overflow-x-auto whitespace-pre-wrap max-h-[400px] scrollbar-hide selection:bg-purple-500/50">
           {displayContent}
         </pre>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -7,9 +7,37 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GEO Engine | AI Visibility Auditor",
-  description: "Optimize your brand for Generative Search Engines (ChatGPT, Grok, Gemini, Claude, Perplexity)",
+  title: "GEO Engine | AI Visibility & Generative Search Optimization",
+  description: "Optimize your brand for the Generative AI era. Audit visibility and generate SEO assets for ChatGPT, Grok, Gemini, Claude, and Perplexity.",
+  keywords: ["GEO", "Generative Engine Optimization", "AI SEO", "Search Engine Optimization", "ChatGPT Optimization", "AI Visibility"],
+  authors: [{ name: "PipeGEO Team" }],
+  openGraph: {
+    title: "GEO Engine | AI Visibility Auditor",
+    description: "Audit and optimize your website for Generative Search Engines.",
+    url: "https://pipe-geo.vercel.app",
+    siteName: "GEO Engine",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "GEO Engine Dashboard Preview",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GEO Engine | AI Visibility Auditor",
+    description: "Optimize your brand for ChatGPT, Gemini, and more.",
+    images: ["/og-image.png"],
+  },
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 import { AuthProvider } from "@/components/AuthProvider";
