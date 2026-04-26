@@ -54,7 +54,14 @@ export default function Home() {
   const [assets, setAssets] = useState<AssetData | null>(null);
   const [error, setError] = useState('');
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  let rawBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  // Ensure protocol exists
+  if (rawBackendUrl && !rawBackendUrl.startsWith('http')) {
+    rawBackendUrl = `https://${rawBackendUrl}`;
+  }
+  // Sanitize trailing slash
+  const BACKEND_URL = rawBackendUrl.replace(/\/$/, '');
+  
   const isBackendRemote = BACKEND_URL.includes('trycloudflare.com') || BACKEND_URL.includes('vercel.app') || !BACKEND_URL.includes('localhost');
 
   const pollTaskStatus = async (taskId: string, type: 'audit' | 'generate') => {
