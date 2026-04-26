@@ -29,27 +29,30 @@ app = FastAPI(
     version="1.1.0"
 )
 
-# CORS Configuration
-ALLOWED_ORIGINS = ["*"]
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import Response
+
+class BruteForceCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.method == "OPTIONS":
+            response = Response()
+        else:
+            response = await call_next(request)
+        
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
+app.add_middleware(BruteForceCORSMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
-
-# Manual OPTIONS handler for Cloudflare Tunnel stability
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(rest_of_path: str):
-    from fastapi.responses import Response
-    response = Response()
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
 
 class AuditRequest(BaseModel):
     url: str
