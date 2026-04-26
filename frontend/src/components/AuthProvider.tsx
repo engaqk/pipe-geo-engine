@@ -38,15 +38,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Handle the redirect result when the user returns
-    getRedirectResult(auth).then(() => {
-      // Result is handled by onAuthStateChanged
+    console.log("Checking for redirect result...");
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        console.log("Redirect success! User:", result.user.email);
+      } else {
+        console.log("No redirect result found (normal page load).");
+      }
     }).catch((error) => {
-      console.error("Redirect recovery error:", error);
+      console.error("Critical Redirect Error:", error.code, error.message);
       setLoading(false);
     });
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log("Auth state changed:", user ? "User found" : "No user");
+      if (user) {
+        console.log("🔥 AUTH SUCCESS: User is logged in as", user.email);
+      } else {
+        console.warn("⚠️ AUTH SESSION MISSING: User is null");
+      }
       setUser(user);
       setLoading(false);
     });

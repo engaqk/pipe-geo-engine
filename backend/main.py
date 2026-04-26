@@ -30,12 +30,19 @@ app = FastAPI(
 )
 
 # CORS Configuration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = [
+    "*",
+    "http://localhost:3000",
+    "https://pipe-geo-engine.vercel.app"
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 class AuditRequest(BaseModel):
