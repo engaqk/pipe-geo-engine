@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
+  signInWithPopup, 
   signInWithRedirect, 
   getRedirectResult,
   signOut, 
@@ -69,9 +70,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(true);
     try {
-      await signInWithRedirect(auth, googleProvider);
+      console.log("Starting Popup Login...");
+      await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
-      console.error("Login failed", error);
+      console.error("Login failed", error.code, error.message);
+      if (error.code === 'auth/popup-blocked') {
+        alert("Please allow popups for this site to sign in.");
+      }
+    } finally {
       setLoading(false);
     }
   };
