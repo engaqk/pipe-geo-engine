@@ -65,20 +65,42 @@ async def analyze_with_llm(markdown_content: str, prompt_type: str):
                 logger.error(f"Ollama returned status {response.status_code}")
                 return {"error": f"Ollama error: {response.text}"}
                 
+            # Robust JSON extraction
             result = response.json()
             raw_response = result.get("response", "{}")
             
+            # Clean up potential markdown formatting
+            clean_json = raw_response.strip()
+            if clean_json.startswith("```json"):
+                clean_json = clean_json.split("```json")[1]
+            if clean_json.startswith("```"):
+                clean_json = clean_json.split("```")[1]
+            if "```" in clean_json:
+                clean_json = clean_json.split("```")[0]
+            clean_json = clean_json.strip()
+
             try:
-                # Attempt to parse the inner JSON string returned by Ollama
-                return json.loads(raw_response)
-            except json.JSONDecodeError:
-                logger.error(f"Failed to decode inner JSON from Ollama: {raw_response[:200]}")
-                # Fallback: maybe it's not double encoded?
-                return result.get("response_json", {}) 
+                # Attempt to parse the inner JSON string
+                return json.loads(clean_json)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode JSON from Ollama: {str(e)}")
+                logger.error(f"Raw string: {clean_json[:500]}")
+                # Last ditch effort: find anything between first [ or { and last ] or }
+                import re
+                try:
+                    match = re.search(r'({.*}|\[.*\])', clean_json, re.DOTALL)
+                    if match:
+                        return json.loads(match.group(0))
+                except:
+                    pass
+                return {"error": "AI Engine returned invalid format. Please try again."}
                 
     except httpx.ConnectError:
         logger.error("Could not connect to Ollama. Is it running?")
         return {"error": "AI Engine Unreachable. Ensure Ollama is running."}
+    except httpx.ReadTimeout:
+        logger.error("Ollama timed out.")
+        return {"error": "AI Engine timed out. The content might be too complex."}
     except Exception as e:
         logger.exception("Unexpected error in LLM analysis:")
         return {"error": f"Analysis failed: {str(e)}"}

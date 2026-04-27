@@ -55,10 +55,15 @@ export default function Home() {
   const [error, setError] = useState('');
 
   // Production Ready Expert Note: Using relative proxy path /api_proxy to bypass CORS/ISP DNS blocks entirely
-  const isProd = typeof window !== 'undefined' && (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
-  const BACKEND_URL = isProd ? '/api_proxy' : (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
+  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   
-  const isBackendRemote = isProd || (!BACKEND_URL.includes('localhost'));
+  // Production: Use /api_proxy to bypass CORS and Cloudflare timeouts
+  // Local: Use LOCALHOST if available, fallback to .env tunnel for testing "remote" behavior
+  const BACKEND_URL = !isLocalhost 
+    ? '/api_proxy' 
+    : (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
+  
+  const isBackendRemote = !isLocalhost || (!BACKEND_URL.includes('localhost'));
 
   const pollTaskStatus = async (taskId: string, type: 'audit' | 'generate') => {
     const startTime = Date.now();
@@ -142,6 +147,10 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (!url || !user) return;
+    if (!url.startsWith('http')) {
+      setError('Please enter a valid URL starting with http:// or https://');
+      return;
+    }
     setLoading(true);
     setError('');
     setStatus('Initializing Asset Generation...');
@@ -441,6 +450,8 @@ export default function Home() {
 }
 
 function ScoreCard({ name, icon, score, analysis, color, delay }: any) {
+  const numericScore = Number(score) || 0;
+  
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -458,14 +469,14 @@ function ScoreCard({ name, icon, score, analysis, color, delay }: any) {
           <span className="font-bold text-xl">{name}</span>
         </div>
         <div className={cn("text-3xl font-black tabular-nums tracking-tighter", color)}>
-          {score}%
+          {numericScore}%
         </div>
       </div>
 
       <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-6">
         <motion.div 
           initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
+          animate={{ width: `${numericScore}%` }}
           transition={{ duration: 1.5, ease: "easeOut", delay: delay + 0.5 }}
           className={cn("h-full", color.replace('text', 'bg'))}
         />

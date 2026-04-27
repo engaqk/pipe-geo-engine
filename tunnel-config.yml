@@ -1,0 +1,9 @@
+tunnel: 1423ab2e-53d1-4230-8b77-02328969a657
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: api.talibkhanjipmp.in
+    service: http://backend:8000
+  - hostname: audit.talibkhanjipmp.in
+    service: http://backend:8000
+  - service: http_status:404

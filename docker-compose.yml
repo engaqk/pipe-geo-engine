@@ -19,7 +19,7 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    entrypoint: [ "sh", "-c", "curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3\"}'" ]
+    entrypoint: [ "sh", "-c", "until curl -s -f -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3\"}'; do echo 'Waiting for model pull...'; sleep 5; done" ]
 
   backend:
     build: ./backend
