@@ -25,7 +25,7 @@ const nextConfig = {
     return [
       {
         source: '/api_proxy/:path*',
-        destination: 'https://api.talibkhanjipmp.in/:path*',
+        destination: 'https://briefs-moon-damages-injuries.trycloudflare.com/:path*',
       },
     ];
   },

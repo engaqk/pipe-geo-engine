@@ -1,0 +1,13 @@
+# Cloudflare Tunnel Credentials
+credentials.json
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker
