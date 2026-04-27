@@ -31,10 +31,10 @@ async def analyze_with_llm(markdown_content: str, prompt_type: str):
         Output ONLY a JSON object:
         {{
             "chatgpt": {{ "score": int, "analysis": "Detailed 2-sentence analysis" }},
-            "grok": {{ "score": int, "analysis": "...", "snippets": ["viral tweet 1"] }},
-            "gemini": {{ "score": int, "analysis": "...", "schema_suggestion": "type" }},
-            "claude": {{ "score": int, "analysis": "..." }},
-            "perplexity": {{ "score": int, "analysis": "..." }}
+            "grok": {{ "score": int, "analysis": "Detailed 2-sentence analysis", "snippets": ["viral tweet 1"] }},
+            "gemini": {{ "score": int, "analysis": "Detailed 2-sentence analysis", "schema_suggestion": "type" }},
+            "claude": {{ "score": int, "analysis": "Detailed 2-sentence analysis" }},
+            "perplexity": {{ "score": int, "analysis": "Detailed 2-sentence analysis" }}
         }}
         """,
         "generate": f"""
