@@ -70,7 +70,7 @@ export default function Home() {
     const timeout = 300000; // 5 minutes
     
     while (Date.now() - startTime < timeout) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       try {
         const res = await fetch(`${BACKEND_URL}/status/${taskId}`, {
           headers: {

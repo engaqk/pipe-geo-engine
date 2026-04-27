@@ -18,7 +18,10 @@ async def get_markdown_from_url(url: str) -> str:
         cache_mode=CacheMode.BYPASS,
         word_count_threshold=10,
         wait_for="body",
-        page_timeout=60000, # 60 seconds
+        page_timeout=30000, 
+        exclude_external_links=True,
+        remove_overlay_elements=True,
+        process_iframes=False,
     )
 
     try:

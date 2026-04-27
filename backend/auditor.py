@@ -26,7 +26,7 @@ async def analyze_with_llm(markdown_content: str, prompt_type: str):
         5. Perplexity: Verify citation-readiness and Markdown table usage.
         
         Content (truncated):
-        {markdown_content[:6000]}
+        {markdown_content[:5000]}
         
         Output ONLY a JSON object:
         {{
